@@ -1,0 +1,30 @@
+[project]
+name = "visa-mentor-ai"
+version = "0.1.0"
+description = "AI-powered F1 visa assistant with RAG"
+requires-python = ">=3.11"
+
+dependencies = [
+    "pymupdf>=1.24.0",
+    "openai>=1.30.0",
+    "pinecone>=3.2.0",
+    "langchain>=0.2.0",
+    "langchain-openai>=0.1.0",
+    "langchain-community>=0.2.0",
+    "langchain-text-splitters>=0.2.0",
+    "anthropic>=0.28.0",
+    "fastapi>=0.111.0",
+    "uvicorn>=0.30.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.7.0",
+    "httpx>=0.27.0",
+    "beautifulsoup4>=4.12.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

@@ -1,0 +1,34 @@
+# Virtual environment
+.venv/
+
+# Environment variables - NEVER commit this
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Data files - too large for git
+data/scraped/
+data/hashes/
+data/bm25_encoder.json
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Frontend
+node_modules/
+.next/
+frontend/.env.local
+
+# IDE
+.vscode/
+.idea/
+
+visa_mentor_ai.egg-info/
