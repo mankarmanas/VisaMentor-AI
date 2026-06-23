@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Custom scrollbar to match the dark chat theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #111827;
+}
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* ===== Markdown rendering in assistant chat bubbles ===== */
+.markdown-body p {
+  margin: 0 0 0.75rem 0;
+  line-height: 1.6;
+}
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.5rem 0 0.75rem 0;
+  padding-left: 1.25rem;
+}
+.markdown-body li {
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+}
+.markdown-body ul {
+  list-style-type: disc;
+}
+.markdown-body ol {
+  list-style-type: decimal;
+}
+
+/* Hide the --- horizontal rules Claude puts between sections.
+   The divider above the bottom "Sources" list is a component
+   border, not an <hr>, so it stays. */
+.markdown-body hr {
+  display: none;
+}
+
+/* Tables */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.8rem;
+  table-layout: auto;
+}
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid #4b5563;
+  padding: 0.5rem 0.85rem;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.markdown-body th {
+  background: #111827;
+  font-weight: 600;
+}
+.markdown-body td:last-child,
+.markdown-body th:last-child {
+  white-space: normal;
+}
+
+/* Links */
+.markdown-body a {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+.markdown-body a:hover {
+  color: #93c5fd;
+}
+
+/* Headings */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem 0;
+  color: #ffffff;
+}
+.markdown-body h1 { font-size: 1.1rem; }
+.markdown-body h2 { font-size: 1.05rem; }
+.markdown-body h3 { font-size: 1rem; }
+
+/* Blockquotes */
+.markdown-body blockquote {
+  border-left: 3px solid #4b5563;
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Inline code */
+.markdown-body code {
+  background: #111827;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+}
