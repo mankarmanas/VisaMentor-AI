@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { onAuthChange, signOutUser } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 import { apiClient } from "@/lib/api";
@@ -23,18 +23,18 @@ export default function Sidebar({
   const [user, setUser] = useState<User | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
 
+  const loadSessions = useCallback(async () => {
+    const data = await apiClient.getSessions();
+    setSessions(data);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthChange((u) => {
       setUser(u);
       if (u) loadSessions();
     });
     return () => unsubscribe();
-  }, []);
-
-  const loadSessions = async () => {
-    const data = await apiClient.getSessions();
-    setSessions(data);
-  };
+  }, [loadSessions]);
 
   const handleSignOut = async () => {
     await signOutUser();

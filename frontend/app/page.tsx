@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { onAuthChange } from "@/lib/auth";
-import type { User } from "@/lib/auth";
 import { apiClient } from "@/lib/api";
 import type { ProfileData } from "@/lib/api";
 import ProfileForm from "@/components/profile/ProfileForm";
@@ -10,7 +9,6 @@ import ChatWindow from "@/components/chat/ChatWindow";
 import Sidebar from "@/components/chat/Sidebar";
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -23,8 +21,6 @@ export default function Home() {
         window.location.href = "/login";
         return;
       }
-
-      setUser(u);
 
       const result = await apiClient.registerUser();
 
