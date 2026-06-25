@@ -2,6 +2,7 @@ import os
 import json
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from langsmith import traceable
 
 load_dotenv()
 
@@ -46,6 +47,7 @@ class QueryRewriter:
     def __init__(self):
         self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+    @traceable(name="QueryRewriter")
     def classify(self, question: str) -> dict:
         """
         Classify the user message and return intent + cleaned query.

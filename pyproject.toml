@@ -25,6 +25,7 @@ dependencies = [
     "pinecone-text>=0.11.0",
     "cohere>=7.0.4",
     "curl-cffi>=0.15.0",
+    "langsmith>=0.9.1",
 ]
 
 [build-system]
