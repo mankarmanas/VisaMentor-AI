@@ -24,7 +24,7 @@ class QueryRewriter:
     CLASSIFIER_PROMPT = """You are a message classifier for a visa assistant chatbot.
     Classify the user message into exactly one of these intents:
 
-    - visa_question  : asking about F1 visa, OPT, CPT, STEM OPT, EAD, SEVIS, grace period
+    - visa_question  : asking about F1 visa, OPT, CPT, STEM OPT, EAD, SEVIS, grace period, I-20, I-765, Form I-20
     - formatting     : asking to reformat/rewrite/summarize the previous answer
     - greeting       : hello, hi, thanks, ok, good morning, small talk
     - followup       : question about the previous answer without a new visa topic
@@ -39,6 +39,7 @@ class QueryRewriter:
 
     Rules:
     - cleaned_query should remove greetings, typos, filler words
+    - Keep cleaned_query concise — do not expand or add words not in the original question
     - cleaned_query is null for non visa_question intents
     - needs_retrieval is true ONLY for visa_question"""
 
@@ -73,7 +74,7 @@ class QueryRewriter:
         """
         response = self.client.messages.create(
             model=self.MODEL,
-            max_tokens=150,
+            max_tokens=300,
             system=self.CLASSIFIER_PROMPT,
             messages=[
                 {"role": "user", "content": question}
