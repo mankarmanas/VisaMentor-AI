@@ -16,7 +16,7 @@ class Retriever:
     """
 
     TOP_K = 5
-    MIN_SCORE = 1.0
+    MIN_SCORE = 0.7
 
     FILLER_PATTERN = re.compile(
         r"^(hi+|hello|hey|hii+|helo|greetings|good\s+\w+)[,!.\s]*",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api";
 import type { ChatResponse } from "@/lib/api";
 import MessageBubble from "@/components/chat/MessageBubble";
@@ -25,15 +25,7 @@ export default function ChatWindow({ sessionId }: ChatWindowProps) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    if (sessionId) {
-      loadMessages(sessionId);
-    } else {
-      setMessages([]);
-    }
-  }, [sessionId]);
-
-  const loadMessages = async (sid: string) => {
+  const loadMessages = useCallback(async (sid: string) => {
     const data = await apiClient.getMessages(sid);
     const loaded: Message[] = data.map((m) => ({
       role: m.role as "user" | "assistant",
@@ -41,7 +33,17 @@ export default function ChatWindow({ sessionId }: ChatWindowProps) {
     }));
     setMessages(loaded);
     apiClient["sessionId" as keyof typeof apiClient] = sid as never;
-  };
+  }, []);
+
+  useEffect(() => {
+    if (sessionId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadMessages(sessionId);
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessages([]);
+    }
+  }, [sessionId, loadMessages]);
 
   const handleSend = async (question: string) => {
     const userMessage: Message = { role: "user", content: question };
@@ -56,7 +58,7 @@ export default function ChatWindow({ sessionId }: ChatWindowProps) {
         sources: response.sources,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch {
       const errorMessage: Message = {
         role: "assistant",
         content: "Something went wrong. Please try again.",

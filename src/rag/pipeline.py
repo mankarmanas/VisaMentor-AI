@@ -11,9 +11,9 @@ from datetime import date
 import anthropic
 import os
 import re
+import json
 
 load_dotenv()
-
 
 class Pipeline:
 
@@ -71,6 +71,19 @@ class Pipeline:
         finally:
             db.close()
 
+    STEM_KEYWORDS = {
+        "computer science", "computer engineering", "data science", "data analytics",
+        "artificial intelligence", "machine learning", "information technology",
+        "information systems", "software engineering", "electrical engineering",
+        "mechanical engineering", "civil engineering", "chemical engineering",
+        "mathematics", "statistics", "physics", "biology", "chemistry",
+        "bioinformatics", "cybersecurity", "network engineering", "robotics",
+    }
+
+    def _is_likely_stem(self, program: str) -> bool:
+        program_lower = program.lower()
+        return any(keyword in program_lower for keyword in self.STEM_KEYWORDS)
+
     def _build_user_context(self, uid: str) -> str:
         if not uid:
             return ""
@@ -87,6 +100,17 @@ class Pipeline:
                 f"  University: {user.university}",
                 f"  Program: {user.program}",
                 f"  STEM Eligible: {'Yes' if user.stem_eligible else 'No'}",
+                *(
+                    [
+                        "  ⚠️ STEM MISMATCH WARNING: The student's program appears to be STEM-eligible "
+                        f"('{user.program}' matches known STEM fields), but the student marked "
+                        "stem_eligible=No during profile setup. This may be a mistake. "
+                        "Inform the student that their degree likely qualifies for STEM OPT and "
+                        "they should verify with their DSO and update their profile."
+                    ]
+                    if not user.stem_eligible and self._is_likely_stem(user.program or "")
+                    else []
+                ),
             ]
 
             if user.program_start_date and user.program_end_date:
@@ -164,6 +188,12 @@ class Pipeline:
             query = rewrite["cleaned_query"] or question
             chunks = self.retriever.retrieve(query)
             chunks = self.reranker.rerank(query, chunks)
+
+            # Reranker quality gate
+            MIN_RERANK_SCORE = 0.35
+            if chunks and chunks[0].get("rerank_score", 1.0) < MIN_RERANK_SCORE:
+                print(f"Reranker gate: BLOCKED — best score {chunks[0]['rerank_score']:.4f} below {MIN_RERANK_SCORE}")
+                chunks = []
         else:
             chunks = []
 
@@ -187,21 +217,28 @@ class Pipeline:
         guard = self.guardrails.check(answer, len(chunks), rewrite["intent"], has_user_context=bool(user_context))
         answer = guard["answer"]
 
-        return {
-            "question": question,
-            "answer": answer,
-            "intent": rewrite["intent"],
-            "sources": [
-                {
+        seen = set()
+        unique_sources = []
+        for c in chunks:
+            key = f"{c['source']}_{c['category']}"
+            if key not in seen:
+                seen.add(key)
+                unique_sources.append({
                     "source": c["source"],
                     "url": c["url"],
                     "category": c["category"],
                     "score": c["score"],
-                }
-                for c in chunks
-            ],
+                })
+
+        return {
+            "question": question,
+            "answer": answer,
+            "intent": rewrite["intent"],
+            "sources": unique_sources,
             "chunks_used": len(chunks),
         }
+    
+    
 
 
 if __name__ == "__main__":

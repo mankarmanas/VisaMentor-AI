@@ -51,8 +51,7 @@ class Guardrails:
             }
 
         # Check 1 — no context was retrieved but answer looks like real content
-        # Check 1 — no context was retrieved but answer looks like real content
-        if chunks_used == 0 and not has_user_context:
+        if chunks_used == 0 :
             is_refusal = any(phrase in answer for phrase in self.REFUSAL_PHRASES)
             has_content = bool(self.CONTENT_PATTERN.search(answer))
 

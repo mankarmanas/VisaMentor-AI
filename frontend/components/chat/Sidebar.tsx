@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { onAuthChange, signOutUser } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 import { apiClient } from "@/lib/api";
 import type { Session } from "@/lib/api";
+import Image from "next/image";
 
 interface SidebarProps {
   currentSessionId: string | null;
@@ -23,18 +24,18 @@ export default function Sidebar({
   const [user, setUser] = useState<User | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
 
+  const loadSessions = useCallback(async () => {
+    const data = await apiClient.getSessions();
+    setSessions(data);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthChange((u) => {
       setUser(u);
       if (u) loadSessions();
     });
     return () => unsubscribe();
-  }, []);
-
-  const loadSessions = async () => {
-    const data = await apiClient.getSessions();
-    setSessions(data);
-  };
+  }, [loadSessions]);
 
   const handleSignOut = async () => {
     await signOutUser();
@@ -174,7 +175,7 @@ export default function Sidebar({
           <div className="px-4 py-4 border-t border-gray-800">
             <div className="flex items-center gap-3 mb-3">
               {user.photoURL && (
-                <img
+                <Image
                   src={user.photoURL}
                   alt="Profile"
                   className="w-8 h-8 rounded-full"
