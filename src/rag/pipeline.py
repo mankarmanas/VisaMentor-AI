@@ -12,6 +12,7 @@ import anthropic
 import os
 import re
 import json
+from langsmith import traceable
 
 load_dotenv()
 
@@ -172,7 +173,18 @@ class Pipeline:
         })
 
         return messages
+    
+    @traceable(name="Generator")
+    def _generate(self, messages: list[dict]) -> str:
+        response = self.generator.client.messages.create(
+            model=self.generator.MODEL,
+            max_tokens=self.generator.MAX_TOKENS,
+            system=self.generator.SYSTEM_PROMPT,
+            messages=messages
+        )
+        return response.content[0].text
 
+    @traceable(name="VisaMentor-Chat") 
     def chat(self, question: str, history: list[dict] = [], uid: str = None) -> dict:
         # Step 1 — classify intent and clean query
         rewrite = self.rewriter.classify(question)
@@ -204,14 +216,7 @@ class Pipeline:
         messages = self._build_messages_with_history(question, chunks, history, user_context)
 
         # Step 6 — generate answer
-        response = self.generator.client.messages.create(
-            model=self.generator.MODEL,
-            max_tokens=self.generator.MAX_TOKENS,
-            system=self.generator.SYSTEM_PROMPT,
-            messages=messages
-        )
-
-        answer = response.content[0].text
+        answer = self._generate(messages)
 
         # Step 7 — guardrails check
         guard = self.guardrails.check(answer, len(chunks), rewrite["intent"], has_user_context=bool(user_context))

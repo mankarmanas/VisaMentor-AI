@@ -1,6 +1,7 @@
 import os
 import cohere
 from dotenv import load_dotenv
+from langsmith import traceable
 
 load_dotenv()
 
@@ -24,6 +25,7 @@ class Reranker:
             api_key=os.getenv("COHERE_API_KEY")
         )
 
+    @traceable(name="Reranker")
     def rerank(self, question: str, chunks: list[dict]) -> list[dict]:
         """
         Rerank chunks by relevance to question.

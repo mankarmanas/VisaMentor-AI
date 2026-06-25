@@ -1,4 +1,4 @@
-import httpx
+from curl_cffi import requests as curl_requests
 import json
 import time
 from bs4 import BeautifulSoup
@@ -36,6 +36,11 @@ SOURCES = [
         "category": "policy_manual",
     },
     {
+        "url": "https://www.uscis.gov/i-765",
+        "source": "USCIS",
+        "category": "I765_form",
+    },
+    {
         "url": "https://studyinthestates.dhs.gov/students/training-opportunities-in-the-united-states",
         "source": "SEVP",
         "category": "training_opportunities",
@@ -46,9 +51,29 @@ SOURCES = [
         "category": "STEM_OPT",
     },
     {
+        "url": "https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt",
+        "source": "SEVP",
+        "category": "CPT",
+    },
+    {
         "url": "https://www.ice.gov/sevis/practical-training",
         "source": "ICE",
         "category": "practical_training",
+    },
+    {
+        "url": "https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment",
+        "source": "SEVP",
+        "category": "F1_employment",
+    },
+    {
+        "url": "https://studyinthestates.dhs.gov/students/maintain-your-status",
+        "source": "SEVP",
+        "category": "maintain_status",
+    },
+    {
+        "url": "https://studyinthestates.dhs.gov/students/prepare/student-forms",
+        "source": "SEVP",
+        "category": "student_forms",
     },
 ]
 
@@ -89,6 +114,10 @@ class WebScraper:
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
     }
 
     def __init__(self, output_dir: Path = SCRAPED_DIR, delay: int = 2):
@@ -102,8 +131,7 @@ class WebScraper:
         print(f"\nScraping: {url}")
 
         try:
-            with httpx.Client(headers=self.HEADERS, timeout=30, follow_redirects=True) as client:
-                response = client.get(url)
+            response = curl_requests.get(url, impersonate="chrome120", timeout=30)
 
             if response.status_code != 200:
                 print(f" Failed — HTTP {response.status_code}")

@@ -178,7 +178,9 @@ export default function Sidebar({
                 <Image
                   src={user.photoURL}
                   alt="Profile"
-                  className="w-8 h-8 rounded-full"
+                  width={32}
+                  height={32}
+                  className="rounded-full"
                 />
               )}
               <div className="flex-1 min-w-0">

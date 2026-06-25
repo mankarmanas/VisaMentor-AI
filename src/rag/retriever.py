@@ -4,6 +4,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import re
 from pinecone_text.sparse import BM25Encoder
+from langsmith import traceable
 
 load_dotenv()
 
@@ -42,6 +43,7 @@ class Retriever:
         )
         return response.data[0].embedding
 
+    @traceable(name="Retriever")
     def retrieve(self, question: str, filter: dict = None) -> list[dict]:
         """
         Embed the question, search Pinecone, return top chunks.
