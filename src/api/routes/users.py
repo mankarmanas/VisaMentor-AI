@@ -25,6 +25,8 @@ class UserProfileUpdateRequest(BaseModel):
     program_end_date: str
     stem_eligible: bool
 
+class OptStartDateRequest(BaseModel):
+    opt_start_date: str
 
 @router.post("/users/register")
 async def register_user(request: UserProfileRequest, x_user_uid: Optional[str] = Header(None)):
@@ -94,5 +96,24 @@ async def get_profile(x_user_uid: Optional[str] = Header(None)):
             "program_end_date": user.program_end_date.isoformat() if user.program_end_date else None,
             "stem_eligible": user.stem_eligible,
         }
+    finally:
+        db.close()
+
+
+@router.post("/users/opt-start-date")
+async def save_opt_start_date(request: OptStartDateRequest, x_user_uid: Optional[str] = Header(None)):
+    if not x_user_uid:
+        raise HTTPException(status_code=401, detail="Not authorized")
+
+    db = next(get_db())
+    try:
+        user = UserCRUD.update_opt_start_date(
+            db=db,
+            uid=x_user_uid,
+            opt_start_date=date.fromisoformat(request.opt_start_date),
+        )
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"message": "OPT start date saved"}
     finally:
         db.close()

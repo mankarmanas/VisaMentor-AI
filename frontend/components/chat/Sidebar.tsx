@@ -133,7 +133,7 @@ export default function Sidebar({
             sessions.map((session) => (
               <div
                 key={session.id}
-                className={`group flex items-center justify-between rounded-lg mb-1 px-3 py-2 ${
+                className={`group flex items-center gap-1 rounded-lg mb-1 ${
                   currentSessionId === session.id
                     ? "bg-gray-700"
                     : "hover:bg-gray-800"
@@ -141,7 +141,7 @@ export default function Sidebar({
               >
                 <button
                   onClick={() => handleSessionClick(session.id)}
-                  className="flex-1 text-left"
+                  className="flex-1 min-w-0 text-left px-3 py-2"
                 >
                   <p className={`truncate text-sm ${
                     currentSessionId === session.id ? "text-white" : "text-gray-400 group-hover:text-white"
@@ -155,7 +155,7 @@ export default function Sidebar({
 
                 <button
                   onClick={() => handleDeleteSession(session.id)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all ml-2"
+                  className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all flex-shrink-0 pr-2"
                 >
                   <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <polyline points="3 6 5 6 21 6" />

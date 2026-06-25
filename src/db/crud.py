@@ -47,6 +47,16 @@ class UserCRUD:
         if not user:
             return False
         return user.university is not None and user.program is not None
+    
+    @staticmethod
+    def update_opt_start_date(db: Session, uid: str, opt_start_date: date) -> Optional[User]:
+        user = db.query(User).filter(User.uid == uid).first()
+        if not user:
+            return None
+        user.opt_start_date = opt_start_date
+        db.commit()
+        db.refresh(user)
+        return user
 
 
 class SessionCRUD:

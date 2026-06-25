@@ -142,6 +142,14 @@ export class ApiClient {
     return data.messages;
   }
 
+  async saveOptStartDate(optStartDate: string): Promise<void> {
+    await fetch(`${API_BASE}/users/opt-start-date`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ opt_start_date: optStartDate }),
+    });
+  }
+
   async deleteSession(sessionId: string): Promise<void> {
     await fetch(`${API_BASE}/sessions/${sessionId}`, {
       method: "DELETE",

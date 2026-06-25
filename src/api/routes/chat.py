@@ -38,7 +38,7 @@ async def chat(request: ChatRequest, x_user_uid: Optional[str] = Header(None)):
             history = [{"role": m.role, "content": m.content} for m in db_messages]
 
         # run pipeline with DB history
-        result = pipeline.chat(request.question, history=history)
+        result = pipeline.chat(request.question, history=history, uid=x_user_uid)
 
         # save messages to DB
         if x_user_uid:
@@ -79,8 +79,6 @@ async def chat(request: ChatRequest, x_user_uid: Optional[str] = Header(None)):
         )
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:

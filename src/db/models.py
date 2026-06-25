@@ -16,6 +16,7 @@ class User(Base):
     program = Column(String)
     program_start_date = Column(Date)
     program_end_date = Column(Date)
+    opt_start_date = Column(Date)
     stem_eligible = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
