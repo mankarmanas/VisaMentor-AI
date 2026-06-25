@@ -12,7 +12,11 @@ interface Message {
   sources?: ChatResponse["sources"];
 }
 
-export default function ChatWindow() {
+interface ChatWindowProps {
+  sessionId?: string | null;
+}
+
+export default function ChatWindow({ sessionId }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -20,6 +24,24 @@ export default function ChatWindow() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (sessionId) {
+      loadMessages(sessionId);
+    } else {
+      setMessages([]);
+    }
+  }, [sessionId]);
+
+  const loadMessages = async (sid: string) => {
+    const data = await apiClient.getMessages(sid);
+    const loaded: Message[] = data.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+    setMessages(loaded);
+    apiClient["sessionId" as keyof typeof apiClient] = sid as never;
+  };
 
   const handleSend = async (question: string) => {
     const userMessage: Message = { role: "user", content: question };
@@ -45,29 +67,8 @@ export default function ChatWindow() {
     }
   };
 
-  const handleClear = async () => {
-    await apiClient.clearHistory();
-    setMessages([]);
-  };
-
   return (
-    <div className="flex flex-col h-screen bg-gray-950">
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900">
-        <div>
-          <h1 className="text-white font-semibold text-lg">Visa Mentor AI</h1>
-          <p className="text-gray-400 text-xs">F1 visa assistant for international students</p>
-        </div>
-        <button
-          onClick={handleClear}
-          className="text-gray-400 hover:text-white text-sm transition-colors"
-        >
-          New Chat
-        </button>
-      </div>
-
-      {/* Messages */}
+    <div className="flex flex-col flex-1 overflow-hidden">
       <div className="flex-1 overflow-y-auto px-4 py-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
@@ -92,10 +93,7 @@ export default function ChatWindow() {
         )}
         <div ref={bottomRef} />
       </div>
-
-      {/* Input */}
       <ChatInput onSend={handleSend} isLoading={isLoading} />
-
-    </div>  
+    </div>
   );
 }

@@ -1,22 +1,23 @@
-import os
 from dotenv import load_dotenv
 from src.rag.retriever import Retriever
 from src.rag.generator import Generator
 from src.rag.query_rewriter import QueryRewriter
 from src.rag.guardrails import Guardrails
 from src.rag.reranker import Reranker
+from src.rag.date_engine import DateEngine
+from src.db.database import get_db
+from src.db.crud import UserCRUD
+from datetime import date
+import anthropic
+import os
+import re
 
 load_dotenv()
 
 
 class Pipeline:
-    """
-    Orchestrates the full RAG flow:
-    user question → retrieve chunks → generate answer → return response
-    Maintains chat history for multi-turn conversations.
-    """
 
-    MAX_HISTORY = 10  # keep last 10 messages to avoid token limit
+    HAIKU_MODEL = "claude-haiku-4-5-20251001"
 
     def __init__(self):
         self.retriever = Retriever()
@@ -24,41 +25,123 @@ class Pipeline:
         self.rewriter = QueryRewriter()
         self.guardrails = Guardrails()
         self.reranker = Reranker()
-        self.chat_history = []  # in-memory for MVP, PostgreSQL in Layer 3
+        self.date_engine = DateEngine()
+        self.haiku = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    def _update_history(self, role: str, content: str):
-        """Add message to chat history, trim if too long."""
-        self.chat_history.append({
-            "role": role,
-            "content": content
-        })
-        # keep only last MAX_HISTORY messages
-        if len(self.chat_history) > self.MAX_HISTORY:
-            self.chat_history = self.chat_history[-self.MAX_HISTORY:]
+    def _extract_opt_date(self, question: str) -> str | None:
+        prompt = f"""Does this message mention an OPT start date that the student has chosen or is planning to choose?
 
-    def _build_messages_with_history(self, question: str, chunks: list[dict]) -> list[dict]:
-        """
-        Build full messages list with:
-        - previous chat history
-        - current question with retrieved context
-        """
-        context = self.generator._build_context(chunks)
+        If yes, return ONLY the date in YYYY-MM-DD format. Nothing else.
+        If no, return NONE.
 
-        current_message = (
-            f"CONTEXT:\n{context}\n\n"
-            f"QUESTION:\n{question}"
+        Examples:
+        "my OPT starts June 15 2026" → 2026-06-15
+        "I chose July 1 as my OPT start date" → 2026-07-01
+        "when does my OPT end?" → NONE
+        "what is OPT?" → NONE
+
+        Message: {question}"""
+
+        response = self.haiku.messages.create(
+            model=self.HAIKU_MODEL,
+            max_tokens=20,
+            messages=[{"role": "user", "content": prompt}]
         )
 
-        messages = []
+        result = response.content[0].text.strip()
+        if result == "NONE":
+            return None
 
-        # add previous conversation history
-        for msg in self.chat_history:
+        # validate it looks like a date
+        if re.match(r"\d{4}-\d{2}-\d{2}", result):
+            return result
+        return None
+
+    def _save_opt_start_date(self, uid: str, date_str: str):
+        db = next(get_db())
+        try:
+            UserCRUD.update_opt_start_date(
+                db=db,
+                uid=uid,
+                opt_start_date=date.fromisoformat(date_str),
+            )
+            print(f"OPT start date saved: {date_str}")
+        except Exception as e:
+            print(f"Failed to save OPT start date: {e}")
+        finally:
+            db.close()
+
+    def _build_user_context(self, uid: str) -> str:
+        if not uid:
+            return ""
+
+        db = next(get_db())
+        try:
+            user = UserCRUD.get_by_uid(db, uid)
+            if not user or not user.university:
+                return ""
+
+            context_lines = [
+                "STUDENT PROFILE:",
+                f"  Name: {user.name}",
+                f"  University: {user.university}",
+                f"  Program: {user.program}",
+                f"  STEM Eligible: {'Yes' if user.stem_eligible else 'No'}",
+            ]
+
+            if user.program_start_date and user.program_end_date:
+                dates = self.date_engine.calculate(
+                    program_start_date=user.program_start_date,
+                    program_end_date=user.program_end_date,
+                    stem_eligible=user.stem_eligible or False,
+                    opt_start_date=user.opt_start_date,
+                )
+
+                context_lines.append(f"  Program Start: {user.program_start_date.isoformat()}")
+                context_lines.append(f"  Program End: {user.program_end_date.isoformat()}")
+                context_lines.append("")
+                context_lines.append("CALCULATED DATES:")
+                context_lines.append(f"  Current Status: {dates['current_status']}")
+                context_lines.append(f"  CPT Eligible Date: {dates['cpt']['eligible_date']}")
+                context_lines.append(f"  CPT Eligible Now: {'Yes' if dates['cpt']['is_eligible_now'] else 'No'}")
+                context_lines.append(f"  OPT Apply Window Opens: {dates['opt']['apply_window_opens']}")
+                context_lines.append(f"  OPT Apply Deadline: {dates['opt']['apply_deadline']}")
+                if user.opt_start_date:
+                    context_lines.append(f"  OPT Start Date (chosen): {user.opt_start_date.isoformat()}")
+                else:
+                    context_lines.append(f"  OPT Earliest Start: {dates['opt']['earliest_start_date']}")
+                context_lines.append(f"  OPT End Date: {dates['opt']['end_date']}")
+                context_lines.append(f"  OPT Grace Period Ends: {dates['opt']['grace_period_end']}")
+
+                if dates["stem_opt"]:
+                    context_lines.append(f"  STEM OPT Apply Window Opens: {dates['stem_opt']['apply_window_opens']}")
+                    context_lines.append(f"  STEM OPT End Date: {dates['stem_opt']['end_date']}")
+                    context_lines.append(f"  STEM OPT Grace Period Ends: {dates['stem_opt']['grace_period_end']}")
+                    context_lines.append(f"  Total Work Authorization: {dates['stem_opt']['total_work_authorization_months']} months")
+
+            return "\n".join(context_lines)
+        finally:
+            db.close()
+
+    def _build_messages_with_history(
+        self, question: str, chunks: list[dict], history: list[dict], user_context: str
+    ) -> list[dict]:
+        context = self.generator._build_context(chunks)
+
+        current_message = ""
+        if user_context:
+            current_message += f"{user_context}\n\n"
+        if context:
+            current_message += f"CONTEXT:\n{context}\n\n"
+        current_message += f"QUESTION:\n{question}"
+
+        messages = []
+        for msg in history:
             messages.append({
                 "role": msg["role"],
                 "content": msg["content"]
             })
 
-        # add current question with context
         messages.append({
             "role": "user",
             "content": current_message
@@ -66,27 +149,31 @@ class Pipeline:
 
         return messages
 
-
-    def chat(self, question: str) -> dict:
-        """
-        Main method — takes user question, returns answer with metadata.
-        """
+    def chat(self, question: str, history: list[dict] = [], uid: str = None) -> dict:
         # Step 1 — classify intent and clean query
         rewrite = self.rewriter.classify(question)
 
-        # Step 2 — retrieve only if needed
+        # Step 2 — detect OPT start date in message and save to DB
+        if uid:
+            opt_date = self._extract_opt_date(question)
+            if opt_date:
+                self._save_opt_start_date(uid, opt_date)
+
+        # Step 3 — retrieve only if needed
         if rewrite["needs_retrieval"]:
             query = rewrite["cleaned_query"] or question
             chunks = self.retriever.retrieve(query)
-            chunks = self.reranker.rerank(query, chunks) 
+            chunks = self.reranker.rerank(query, chunks)
         else:
             chunks = []
-            print(f"Skipping retrieval — intent: {rewrite['intent']}")
 
-        # Step 3 — build messages with history
-        messages = self._build_messages_with_history(question, chunks)
+        # Step 4 — build user context with personalized dates
+        user_context = self._build_user_context(uid)
 
-        # Step 4 — generate answer
+        # Step 5 — build messages with history and context
+        messages = self._build_messages_with_history(question, chunks, history, user_context)
+
+        # Step 6 — generate answer
         response = self.generator.client.messages.create(
             model=self.generator.MODEL,
             max_tokens=self.generator.MAX_TOKENS,
@@ -96,13 +183,9 @@ class Pipeline:
 
         answer = response.content[0].text
 
-        # Step 4.5 — safety check before sending to user
-        guard = self.guardrails.check(answer, len(chunks), rewrite["intent"])
+        # Step 7 — guardrails check
+        guard = self.guardrails.check(answer, len(chunks), rewrite["intent"], has_user_context=bool(user_context))
         answer = guard["answer"]
-
-        # Step 5 — store plain question in history
-        self._update_history("user", question)
-        self._update_history("assistant", answer)
 
         return {
             "question": question,
@@ -120,32 +203,22 @@ class Pipeline:
             "chunks_used": len(chunks),
         }
 
-    def clear_history(self):
-        """Clear chat history — called when user starts new conversation."""
-        self.chat_history = []
-        print("Chat history cleared.")
-
 
 if __name__ == "__main__":
     pipeline = Pipeline()
 
     print("Visa Mentor AI - Test Chat")
-    print("Type 'quit' to exit, 'clear' to clear history")
+    print("Type 'quit' to exit")
     print("=" * 50)
 
     while True:
         question = input("\nYou: ").strip()
-
         if question.lower() == "quit":
             break
-        elif question.lower() == "clear":
-            pipeline.clear_history()
-            continue
         elif not question:
             continue
 
         result = pipeline.chat(question)
-
         print(f"\nAssistant: {result['answer']}")
         print(f"\n[Sources: {', '.join(set(s['source'] for s in result['sources']))}]")
         print(f"[Chunks used: {result['chunks_used']}]")

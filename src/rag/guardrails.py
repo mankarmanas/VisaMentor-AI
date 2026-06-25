@@ -26,7 +26,7 @@ class Guardrails:
         flags=re.IGNORECASE
     )
 
-    def check(self, answer: str, chunks_used: int, intent: str = "visa_question") -> dict:
+    def check(self, answer: str, chunks_used: int, intent: str = "visa_question", has_user_context: bool = False) -> dict:
         """
         Validate the answer against what was retrieved.
 
@@ -51,7 +51,8 @@ class Guardrails:
             }
 
         # Check 1 — no context was retrieved but answer looks like real content
-        if chunks_used == 0:
+        # Check 1 — no context was retrieved but answer looks like real content
+        if chunks_used == 0 and not has_user_context:
             is_refusal = any(phrase in answer for phrase in self.REFUSAL_PHRASES)
             has_content = bool(self.CONTENT_PATTERN.search(answer))
 
