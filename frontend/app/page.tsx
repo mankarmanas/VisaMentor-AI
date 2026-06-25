@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { onAuthChange } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 import { apiClient } from "@/lib/api";
+import type { ProfileData } from "@/lib/api";
 import ProfileForm from "@/components/profile/ProfileForm";
 import ChatWindow from "@/components/chat/ChatWindow";
 import Sidebar from "@/components/chat/Sidebar";
@@ -25,10 +26,8 @@ export default function Home() {
 
       setUser(u);
 
-      // register user in DB (saves name, email, photo)
       const result = await apiClient.registerUser();
 
-      // if no profile → show profile form
       if (!result.has_profile) {
         setShowProfile(true);
       }
@@ -39,22 +38,12 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  const handleProfileComplete = async (data: {
-    university: string;
-    program: string;
-    program_end_date: string;
-    stem_eligible: boolean;
-  }) => {
+  const handleProfileComplete = async (data: ProfileData) => {
     await apiClient.saveProfile(data);
     setShowProfile(false);
   };
 
-  const handleSettingsComplete = async (data: {
-    university: string;
-    program: string;
-    program_end_date: string;
-    stem_eligible: boolean;
-  }) => {
+  const handleSettingsComplete = async (data: ProfileData) => {
     await apiClient.saveProfile(data);
     setShowSettings(false);
   };
@@ -97,7 +86,6 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Header */}
         <div className="flex items-center px-4 py-3 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <Sidebar
@@ -113,7 +101,6 @@ export default function Home() {
         <ChatWindow key={resetKey} sessionId={currentSessionId} />
       </div>
 
-      {/* Settings modal */}
       {showSettings && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
           <div className="bg-gray-900 rounded-2xl w-full max-w-md px-6 py-8 mx-4 relative">

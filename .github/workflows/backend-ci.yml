@@ -31,7 +31,7 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync && uv pip install pytest
 
       - name: Run date engine tests (no API keys needed)
         run: uv run pytest tests/test_date_engine.py -v
