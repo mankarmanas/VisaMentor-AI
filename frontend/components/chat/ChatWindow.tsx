@@ -37,8 +37,10 @@ export default function ChatWindow({ sessionId }: ChatWindowProps) {
 
   useEffect(() => {
     if (sessionId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadMessages(sessionId);
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([]);
     }
   }, [sessionId, loadMessages]);

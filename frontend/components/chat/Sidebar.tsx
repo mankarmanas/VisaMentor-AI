@@ -5,6 +5,7 @@ import { onAuthChange, signOutUser } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 import { apiClient } from "@/lib/api";
 import type { Session } from "@/lib/api";
+import Image from "next/image";
 
 interface SidebarProps {
   currentSessionId: string | null;
@@ -174,7 +175,7 @@ export default function Sidebar({
           <div className="px-4 py-4 border-t border-gray-800">
             <div className="flex items-center gap-3 mb-3">
               {user.photoURL && (
-                <img
+                <Image
                   src={user.photoURL}
                   alt="Profile"
                   className="w-8 h-8 rounded-full"
