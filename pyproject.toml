@@ -22,6 +22,7 @@ dependencies = [
     "psycopg2-binary>=2.9.12",
     "psycopg[binary]>=3.3.4",
     "python-dateutil>=2.9.0.post0",
+    "pinecone-text>=0.11.0",
 ]
 
 [build-system]
