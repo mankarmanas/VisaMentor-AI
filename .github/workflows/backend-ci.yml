@@ -6,8 +6,8 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
-      - 'requirements.txt'
       - 'pyproject.toml'
+      - 'uv.lock'
   pull_request:
     branches: [main]
     paths:
@@ -26,13 +26,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: uv sync
 
       - name: Run date engine tests (no API keys needed)
-        run: python -m pytest tests/test_date_engine.py -v
+        run: uv run pytest tests/test_date_engine.py -v
 
       - name: Run RAG pipeline tests
         env:
@@ -42,5 +44,5 @@ jobs:
           PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
           COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m pytest tests/test_rag_pipeline.py -v
+        run: uv run pytest tests/test_rag_pipeline.py -v
         continue-on-error: true
