@@ -1,5 +1,5 @@
 import re
-
+from langsmith import traceable
 
 class Guardrails:
     """
@@ -26,6 +26,7 @@ class Guardrails:
         flags=re.IGNORECASE
     )
 
+    @traceable(name="Guardrails")
     def check(self, answer: str, chunks_used: int, intent: str = "visa_question", has_user_context: bool = False) -> dict:
         """
         Validate the answer against what was retrieved.
