@@ -2,7 +2,7 @@ import os
 import json
 from anthropic import Anthropic
 from dotenv import load_dotenv
-from langsmith import traceable
+from langsmith import traceable, wrappers
 
 load_dotenv()
 
@@ -45,7 +45,7 @@ class QueryRewriter:
     - needs_retrieval is true ONLY for visa_question"""
 
     def __init__(self):
-        self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = wrappers.wrap_anthropic(Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY")))
 
     @traceable(name="QueryRewriter")
     def classify(self, question: str) -> dict:

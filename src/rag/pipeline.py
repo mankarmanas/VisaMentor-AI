@@ -11,8 +11,7 @@ from datetime import date
 import anthropic
 import os
 import re
-import json
-from langsmith import traceable
+from langsmith import traceable, wrappers
 
 load_dotenv()
 
@@ -176,7 +175,7 @@ class Pipeline:
     
     @traceable(name="Generator")
     def _generate(self, messages: list[dict]) -> str:
-        response = self.generator.client.messages.create(
+        response = wrappers.wrap_anthropic(self.generator.client).messages.create(
             model=self.generator.MODEL,
             max_tokens=self.generator.MAX_TOKENS,
             system=self.generator.SYSTEM_PROMPT,

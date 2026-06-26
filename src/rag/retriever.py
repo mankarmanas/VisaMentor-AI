@@ -4,7 +4,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import re
 from pinecone_text.sparse import BM25Encoder
-from langsmith import traceable
+from langsmith import traceable, wrappers
 
 load_dotenv()
 
@@ -27,7 +27,7 @@ class Retriever:
     def __init__(self):
         self.pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
         self.index = self.pc.Index(os.getenv("PINECONE_INDEX_NAME"))
-        self.openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.openai = wrappers.wrap_openai(OpenAI(api_key=os.getenv("OPENAI_API_KEY")))
         self.bm25 = BM25Encoder()
         self.bm25 = self.bm25.load(BM25_PATH)
 
@@ -35,6 +35,7 @@ class Retriever:
         cleaned = self.FILLER_PATTERN.sub("", question).strip()
         return cleaned if cleaned else question
 
+    @traceable(name="Embedder")
     def embed_query(self, question: str) -> list[float]:
         """Convert user question into a vector."""
         response = self.openai.embeddings.create(
