@@ -1,4 +1,3 @@
-```markdown
 # VisaMentor AI
 
 An AI-powered F-1 visa assistant for international students studying in the United States. VisaMentor AI answers questions about OPT, CPT, STEM OPT, work authorization, tax obligations, H-1B transition, and more — grounded strictly in official government sources.
@@ -225,4 +224,3 @@ GitHub Actions runs on every push to `main` and `dev`:
 ## License
 
 MIT
-```
