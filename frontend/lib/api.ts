@@ -2,6 +2,27 @@ import { auth } from "@/lib/firebase";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
+// The backend's /health route lives at the server root, not under /api/v1.
+const HEALTH_URL = `${API_BASE.replace(/\/api\/v1\/?$/, "")}/health`;
+
+// Long enough to ride out a Render free-tier cold start (~50-60s),
+// short enough that the app never hangs forever.
+const REQUEST_TIMEOUT_MS = 90_000;
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export interface Source {
   source: string;
   category: string;
@@ -65,22 +86,34 @@ export class ApiClient {
     const user = auth.currentUser;
     if (!user) return { has_profile: false };
 
-    const response = await fetch(`${API_BASE}/users/register`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        email: user.email || "",
-        name: user.displayName || "",
-        photo_url: user.photoURL || "",
-        university: "",
-        program: "",
-        program_end_date: "2025-01-01",
-        stem_eligible: false,
-      }),
-    });
+    try {
+      const response = await fetchWithTimeout(`${API_BASE}/users/register`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          email: user.email || "",
+          name: user.displayName || "",
+          photo_url: user.photoURL || "",
+          university: "",
+          program: "",
+          program_end_date: "2025-01-01",
+          stem_eligible: false,
+        }),
+      });
 
-    if (!response.ok) return { has_profile: false };
-    return await response.json();
+      if (!response.ok) return { has_profile: false };
+      return await response.json();
+    } catch {
+      // Network error or timeout: same outcome as a non-OK response,
+      // so the page never gets stuck on "Loading...".
+      return { has_profile: false };
+    }
+  }
+
+  // Fire-and-forget request that wakes the backend (Render cold start)
+  // while the user is still choosing their Google account.
+  warmUp(): void {
+    fetch(HEALTH_URL, { method: "GET", cache: "no-store" }).catch(() => {});
   }
 
   async getProfile(): Promise<UserProfile> {
