@@ -22,13 +22,17 @@ export default function Home() {
         return;
       }
 
-      const result = await apiClient.registerUser();
+      try {
+        const result = await apiClient.registerUser();
 
-      if (!result.has_profile) {
+        if (!result.has_profile) {
+          setShowProfile(true);
+        }
+      } catch {
         setShowProfile(true);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => unsubscribe();

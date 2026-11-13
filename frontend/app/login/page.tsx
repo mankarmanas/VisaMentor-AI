@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithGoogle, onAuthChange } from "@/lib/auth";
+import { apiClient } from "@/lib/api";
 
 const TAGS = ["I-20", "CPT", "OPT", "STEM OPT", "SEVIS", "EAD"];
 
@@ -10,6 +11,11 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Wake the backend now so it's ready by the time sign-in finishes.
+    apiClient.warmUp();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthChange((user) => {
